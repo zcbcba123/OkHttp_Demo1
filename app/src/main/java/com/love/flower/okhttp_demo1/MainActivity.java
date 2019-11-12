@@ -18,6 +18,7 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.CookieJar;
 import okhttp3.FormBody;
+import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -33,12 +34,13 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/x-markdown;charset=utf-8");
-//    private static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/xml;charset=utf-8");
-    private static final MediaType MEDIA_TYPE_FORM= MediaType.parse("multipart/form-data");
+    //    private static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/xml;charset=utf-8");
+    private static final MediaType MEDIA_TYPE_FORM = MediaType.parse("multipart/form-data");
     private static final MediaType MEDIA_TYPE_ALL = MediaType.parse("application/octet-stream");
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
     private static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
-//    private static final MediaType MEDIA_TYPE_ALL = MediaType.parse("text/plain");
+    //    private static final MediaType MEDIA_TYPE_ALL = MediaType.parse("text/plain");
+    private static final String IMGUR_CLIENT_ID = "...";
     private TextView tv;
     private OkHttpClient okHttpClient;
 
@@ -50,62 +52,198 @@ public class MainActivity extends AppCompatActivity {
         verifyStoragePermissions(this);
     }
 
-    public void main(View view){
-//        get_demo();
-//        post_demo();
-//        post_sink_demo();
-//        post_file_demo2();
+    public void main(View view) {
+//        get_demo();//异步get
+//        get_sync_demo();//同步get
+//        post_demo();//POST提交String
+//        post_sink_demo();//post方式提交流
+//          post_file_demo();//post提交文件
+//        post_file_demo2();//待测试
 //        post_png_demo2();
 //        post_json_demo();
-//        post_formbody_demo();
-        post_down_demo();
+//        post_formbody_demo();//post表单提交(待测试)
+//        post_down_demo();
 
+//        post_multipart_demo();//待测试
+
+        post_interceptor_demo_1();//拦截器
+
+    }
+
+    /**
+     * 拦截每一个原始请求以及耗费时间
+     */
+    private void post_interceptor_demo_1() {
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .addInterceptor(new LoggingInterceptor())
+                .build();
+        Request request = new Request.Builder()
+                .url("http://www.publicobject.com/helloworld.txt")
+                .header("User-Agent", "OkHttp Example")
+                .build();
+okHttpClient.newCall(request).enqueue(new Callback() {
+    @Override
+    public void onFailure(Call call, IOException e) {
+        Log.d(TAG, "onFailure: " + e.getMessage());
+    }
+
+    @Override
+    public void onResponse(Call call, Response response) throws IOException {
+        ResponseBody body = response.body();
+        if (body != null) {
+            Log.d(TAG, "onResponse: " + response.body().string());
+            body.close();
+        }
+    }
+});
+
+    }
+
+    private void post_multipart_demo() {
+        OkHttpClient client = new OkHttpClient();
+        // Use the imgur image upload API as documented at https://api.imgur.com/endpoints/image
+        MultipartBody body = new MultipartBody.Builder("AaB03x")
+                .setType(MultipartBody.FORM)
+                .addPart(
+                        Headers.of("Content-Disposition","form-data;name=\"title\""),
+                        RequestBody.create(null,"Square Logo")
+                )
+                .addPart(Headers.of("Content-Disposition","form-data;name=\"image\""),
+                        RequestBody.create(MEDIA_TYPE_PNG,new File("/sdcard/DCIM/P91112-135221.png")))
+                .build();
+        Request request = new Request.Builder()
+                .header("Authorization", "Client-ID" + IMGUR_CLIENT_ID)
+                .url("https://api.imgur.com/3/image")
+                .post(body)
+                .build();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.println(response.body().string());
+            }
+        });
+    }
+
+    private void get_demo() {
+//        String url = "http://192.168.1.101:8080/customer/list?username=444";
+//        String url = "http://publicobject.com/helloworld.txt";
+        String url = "http://wwww.baidu.com";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(url)
+                .get()//默认就是可以不写
+                .build();
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d(TAG, "onFailure: ");
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+//                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+                ResponseBody body = response.body();
+                final String string = body.string();
+                Log.d(TAG, "onResponse: " + string);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            tv.setText(string);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private void get_sync_demo() {
+        String url="https://www.baidu.com";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        final Request request = new Request.Builder()
+                .url(url)
+                .build();
+        final Call call = okHttpClient.newCall(request);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Response response = call.execute();
+                    ResponseBody body = response.body();
+                    final String string = body.string();
+                    Log.d(TAG, "onResponse: " + string);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                tv.setText(string);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
 
     }
 
     private void post_down_demo() {
-            File fpng = new File(Environment.getExternalStorageDirectory(),"zs");
-            File f = new File(Environment.getExternalStorageDirectory(),"");
-            if (!f.exists()){
-                return;
-            }
-            File file = new File(f, "Statstic.txt");
-            File filepng2 = new File(fpng, "test.png");
-            //        String url = "https://api.github.com/markdown/raw";
-            String url = "http://192.168.1.101:8080/customer/listdown";
+        File fpng = new File(Environment.getExternalStorageDirectory(), "zs");
+        File f = new File(Environment.getExternalStorageDirectory(), "");
+        if (!f.exists()) {
+            return;
+        }
+        File file = new File(f, "Statstic.txt");
+        File filepng2 = new File(fpng, "test.png");
+        //        String url = "https://api.github.com/markdown/raw";
+        String url = "http://192.168.1.101:8080/customer/listdown";
 //            okHttpClient.cookieJar(new CookieJar());
 //        File file = new File("/storage/emulated/0/shumei.txt");
 
 
-            RequestBody filebody = RequestBody.create(MEDIA_TYPE_ALL, file);
-            RequestBody filepng = RequestBody.create(MEDIA_TYPE_ALL, filepng2);
-            RequestBody body = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("qq","dd")
-                    .addFormDataPart("qq2","dd2")
-                    .addFormDataPart("file", "2.txt", filebody)
-                    .addFormDataPart("file", "1.png", filepng)
-                    .build();
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "OkHttp Headers.java")
-                    .addHeader("Accept", "application/json; q=0.5")
-                    .addHeader("Accept", "application/vnd.github.v3+json")
-                    .post(body)
-                    .build();
-            okHttpClient.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.d(TAG, "onFailure: " + e.getMessage());
-                }
+        RequestBody filebody = RequestBody.create(MEDIA_TYPE_ALL, file);
+        RequestBody filepng = RequestBody.create(MEDIA_TYPE_ALL, filepng2);
+        RequestBody body = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("qq", "dd")
+                .addFormDataPart("qq2", "dd2")
+                .addFormDataPart("file", "2.txt", filebody)
+                .addFormDataPart("file", "1.png", filepng)
+                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", "OkHttp Headers.java")
+                .addHeader("Accept", "application/json; q=0.5")
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .post(body)
+                .build();
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d(TAG, "onFailure: " + e.getMessage());
+            }
 
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    Log.d(TAG, response.protocol() + " " + response.code() + " " + response.message());
-                    Log.d(TAG, "onResponse: " + response.body().string());
-                }
-            });
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                Log.d(TAG, response.protocol() + " " + response.code() + " " + response.message());
+                Log.d(TAG, "onResponse: " + response.body().string());
+            }
+        });
     }
+
     public void CacheResponse(File cacheDirectory) throws Exception {
         int cacheSize = 10 * 1024 * 1024; // 10 MiB
         Cache cache = new Cache(cacheDirectory, cacheSize);
@@ -115,20 +253,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void post_formbody_demo() {
-        OkHttpClient okHttpClient=new OkHttpClient();
-        String url="http://192.168.1.101:8080/customer/listform";
-        JSONObject j = new JSONObject();
+        //待测试
+        OkHttpClient okHttpClient = new OkHttpClient();
+//        String url = "http://192.168.1.101:8080/customer/listform";
+        String url="https://api.github.com/markdown/raw";
+       /* JSONObject j = new JSONObject();
         try {
             j.put("ss", "ff");
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        String json = j.toString();
-        RequestBody body= new FormBody.Builder()
-                .add("tt","ee")
-                .add("tt2","ee2")
+        String json = j.toString();*/
+        RequestBody body = new FormBody.Builder()
+                .add("search", "ee")
+//                .add("tt2", "ee2")
                 .build();
-        Request request=new Request.Builder()
+        Request request = new Request.Builder()
                 .url(url)
                 .post(body)
                 .build();
@@ -148,8 +288,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void post_json_demo() {
-        OkHttpClient okHttpClient=new OkHttpClient();
-        String url="http://192.168.1.101:8080/customer/listjson";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        String url = "http://192.168.1.101:8080/customer/listjson";
         JSONObject j = new JSONObject();
         try {
             j.put("ss", "ff");
@@ -157,8 +297,8 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         String json = j.toString();
-        RequestBody body=RequestBody.create(MEDIA_TYPE_JSON,json);
-        Request request=new Request.Builder()
+        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, json);
+        Request request = new Request.Builder()
                 .url(url)
                 .post(body)
                 .build();
@@ -178,9 +318,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void post_png_demo2() {
         if (hasSdcard()) {
-            File fpng = new File(Environment.getExternalStorageDirectory(),"zs");
-            File f = new File(Environment.getExternalStorageDirectory(),"");
-            if (!f.exists()){
+            File fpng = new File(Environment.getExternalStorageDirectory(), "zs");
+            File f = new File(Environment.getExternalStorageDirectory(), "");
+            if (!f.exists()) {
                 return;
             }
             File file = new File(f, "Statstic.txt");
@@ -194,8 +334,8 @@ public class MainActivity extends AppCompatActivity {
             RequestBody filepng = RequestBody.create(MEDIA_TYPE_ALL, filepng2);
             RequestBody body = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
-                    .addFormDataPart("qq","dd")
-                    .addFormDataPart("qq2","dd2")
+                    .addFormDataPart("qq", "dd")
+                    .addFormDataPart("qq2", "dd2")
                     .addFormDataPart("file", "2.txt", filebody)
                     .addFormDataPart("file", "1.png", filepng)
                     .build();
@@ -219,15 +359,40 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void post_file_demo2() {
-//        String url = "https://api.github.com/markdown/raw";
-        String url = "http://192.168.1.101:8080/customer/listfile";
+    private void post_file_demo() {
+        String url = "https://api.github.com/markdown/raw";
         OkHttpClient okHttpClient = new OkHttpClient();
-        File file = new File("/storage/emulated/0/shumei.txt");
-        RequestBody filebody=RequestBody.create(MEDIA_TYPE_FORM,file);
-        RequestBody body=new MultipartBody.Builder()
+        File file = new File("/sdcard/DingTalk/test(2)_3.txt");
+        RequestBody filebody = RequestBody.create(MEDIA_TYPE_MARKDOWN, file);
+        Request request = new Request.Builder().url(url)
+                .post(filebody).build();
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                Log.d(TAG, response.protocol() + " " +response.code() + " " + response.message());
+                Headers headers = response.headers();
+                for (int i = 0; i < headers.size(); i++) {
+                    Log.d(TAG, headers.name(i) + ":" + headers.value(i));
+                }
+                Log.d(TAG, "onResponse: " + response.body().string());
+            }
+        });
+    }
+
+    private void post_file_demo2() {
+        String url = "https://api.github.com/markdown/raw";
+//        String url = "http://192.168.1.101:8080/customer/listfile";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        File file = new File("/sdcard/DingTalk/test(2)_3.txt");
+        RequestBody filebody = RequestBody.create(MEDIA_TYPE_FORM, file);
+        RequestBody body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart(String.valueOf(MEDIA_TYPE_FORM),"shumei",filebody)
+                .addFormDataPart(String.valueOf(MEDIA_TYPE_FORM), "shumei", filebody)
                 .build();
         Request request = new Request.Builder()
                 .url(url)
@@ -241,22 +406,21 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                Log.d(TAG, response.protocol() + " " +response.code() + " " + response.message());
+                Log.d(TAG, response.protocol() + " " + response.code() + " " + response.message());
                 Log.d(TAG, "onResponse: " + response.body().string());
             }
         });
     }
 
 
-
     private void post_sink_demo() {
-//                String url = "https://api.github.com/markdown/raw";
-        String url = "http://192.168.1.101:8080/customer/list";
+                String url = "https://api.github.com/markdown/raw";
+//        String url = "http://192.168.1.101:8080/customer/list";
         OkHttpClient okHttpClient = new OkHttpClient();
 //        String postBody="ceshi";
 //        RequestBody postbody=RequestBody.create(MEDIA_TYPE_MARKDOWN,postBody);
 
-        RequestBody postbody=new RequestBody() {
+        RequestBody postbody = new RequestBody() {
             @Override
             public MediaType contentType() {
                 return MEDIA_TYPE_MARKDOWN;
@@ -264,11 +428,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void writeTo(BufferedSink sink) throws IOException {
-//                sink.writeUtf8("dd");
+//                sink.writeUtf8("I am zs");
                 sink.writeUtf8("Numbers\n");
                 sink.writeUtf8("-------\n");
                 for (int i = 2; i <= 997; i++) {
-                    sink.writeUtf8(String.format(" * %s = %s\n", i, factor(i)));
+                    sink.writeUtf8(String.format(" * %s = %s\n", i, factor(i)));//求因子
                 }
 
 
@@ -282,7 +446,7 @@ public class MainActivity extends AppCompatActivity {
                 return Integer.toString(n);
             }
         };
-        Request request=new Request.Builder()
+        Request request = new Request.Builder()
                 .url(url)
                 .post(postbody)
                 .build();
@@ -314,49 +478,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void post_demo() {
-//        String url = "https://api.github.com/markdown/raw";
-        String url = "http://192.168.1.101:8080/customer/listbody";
+        //        String url = "http://192.168.1.101:8080/customer/listbody";
+        String url = "https://api.github.com/markdown/raw";
         OkHttpClient okHttpClient = new OkHttpClient();
-        String postBody="ceshi";
-        RequestBody postbody=RequestBody.create(MEDIA_TYPE_MARKDOWN,postBody);
-        Request request=new Request.Builder()
+        String postBody = "ceshi";
+        RequestBody postbody = RequestBody.create(MEDIA_TYPE_MARKDOWN, postBody);
+        Request request = new Request.Builder()
                 .url(url)
                 .post(postbody)
-                .build();
-        Call call = okHttpClient.newCall(request);
-        call.enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.d(TAG, "onFailure: ");
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-//                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-                ResponseBody body = response.body();
-                final String string = body.string();
-                Log.d(TAG, "onResponse: " + string);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            tv.setText(string);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-            }
-        }); 
-    }
-
-    private void get_demo() {
-        String url = "http://192.168.1.101:8080/customer/list?username=444";
-//        String url = "http://publicobject.com/helloworld.txt";
-        OkHttpClient okHttpClient = new OkHttpClient();
-        Request request=new Request.Builder()
-                .url(url)
-                .get()
                 .build();
         Call call = okHttpClient.newCall(request);
         call.enqueue(new Callback() {
@@ -385,10 +514,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public boolean hasSdcard(){
-        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
+    public boolean hasSdcard() {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             return true;
-        }else {
+        } else {
             return false;
         }
     }
