@@ -1,3 +1,4 @@
+git //参考网址:https://www.jianshu.com/p/da4a806e599b
 导入:implementation 'com.squareup.okhttp3:okhttp:3.10.0'
 开启权限:internet (如果使用DiskLruCache还要开启写外存的权限?//)
 #1.1异步get:#
