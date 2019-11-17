@@ -29,8 +29,9 @@ import okhttp3.ResponseBody;
 import okio.BufferedSink;
 
 import static com.love.flower.okhttp_demo1.PermisionUtils.verifyStoragePermissions;
-////
+////gi
 public class MainActivity extends AppCompatActivity {
+    public static final String ServerPath="http://192.168.1.103:8080/";
 
     private static final String TAG = "MainActivity";
     private static final MediaType MEDIA_TYPE_MARKDOWN = MediaType.parse("text/x-markdown;charset=utf-8");
@@ -56,8 +57,8 @@ public class MainActivity extends AppCompatActivity {
 //        get_demo();//异步get
 //        get_sync_demo();//同步get
 //        post_demo();//POST提交String
-//        post_sink_demo();//post方式提交流
-//          post_file_demo();//post提交文件
+//        post_sink_demo();//post方式提交流 用自己的服务器还没法接收
+//        post_file_demo();//post提交文件
 //        post_file_demo2();//待测试
 //        post_png_demo2();
 //        post_json_demo();
@@ -134,7 +135,7 @@ okHttpClient.newCall(request).enqueue(new Callback() {
     private void get_demo() {
 //        String url = "http://192.168.1.101:8080/customer/list?username=444";
 //        String url = "http://publicobject.com/helloworld.txt";
-        String url = "http://wwww.baidu.com";
+        String url = ServerPath+"hello?args=111";
         OkHttpClient okHttpClient = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(url)
@@ -414,8 +415,8 @@ okHttpClient.newCall(request).enqueue(new Callback() {
 
 
     private void post_sink_demo() {
-                String url = "https://api.github.com/markdown/raw";
-//        String url = "http://192.168.1.101:8080/customer/list";
+//                String url = "https://api.github.com/markdown/raw";
+        String url = ServerPath+"post_sink";
         OkHttpClient okHttpClient = new OkHttpClient();
 //        String postBody="ceshi";
 //        RequestBody postbody=RequestBody.create(MEDIA_TYPE_MARKDOWN,postBody);
@@ -478,11 +479,11 @@ okHttpClient.newCall(request).enqueue(new Callback() {
     }
 
     private void post_demo() {
-        //        String url = "http://192.168.1.101:8080/customer/listbody";
-        String url = "https://api.github.com/markdown/raw";
+                String url = ServerPath+"listbody";
+//        String url = "https://api.github.com/markdown/raw";
         OkHttpClient okHttpClient = new OkHttpClient();
-        String postBody = "ceshi";
-        RequestBody postbody = RequestBody.create(MEDIA_TYPE_MARKDOWN, postBody);
+        String s = "ceshi";
+        RequestBody postbody = RequestBody.create(MEDIA_TYPE_MARKDOWN, s);
         Request request = new Request.Builder()
                 .url(url)
                 .post(postbody)
