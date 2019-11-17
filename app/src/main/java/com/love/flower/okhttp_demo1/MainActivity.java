@@ -62,12 +62,12 @@ public class MainActivity extends AppCompatActivity {
 //        post_file_demo2();//待测试
 //        post_png_demo2();
 //        post_json_demo();
-//        post_formbody_demo();//post表单提交(待测试)
+        post_formbody_demo();//post表单提交(待测试)
 //        post_down_demo();
 
 //        post_multipart_demo();//待测试
 
-        post_interceptor_demo_1();//拦截器
+//        post_interceptor_demo_1();//拦截器
 
     }
 
@@ -256,8 +256,8 @@ okHttpClient.newCall(request).enqueue(new Callback() {
     private void post_formbody_demo() {
         //待测试
         OkHttpClient okHttpClient = new OkHttpClient();
-//        String url = "http://192.168.1.101:8080/customer/listform";
-        String url="https://api.github.com/markdown/raw";
+        String url = ServerPath+"form_api";
+//        String url="https://api.github.com/markdown/raw";
        /* JSONObject j = new JSONObject();
         try {
             j.put("ss", "ff");
@@ -266,8 +266,8 @@ okHttpClient.newCall(request).enqueue(new Callback() {
         }
         String json = j.toString();*/
         RequestBody body = new FormBody.Builder()
-                .add("search", "ee")
-//                .add("tt2", "ee2")
+                .add("name", "namex")
+                .add("type", "typey")
                 .build();
         Request request = new Request.Builder()
                 .url(url)
